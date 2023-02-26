@@ -1,0 +1,28 @@
+services:
+  nextcloud:
+    image: nextcloud
+    ports:
+      - 8080:80
+    volumes:
+      - nextcloud:/var/www/html
+    environment:
+      - MYSQL_HOST=database
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=nextcloud
+      - MYSQL_DATABASE=nextcloud
+    depends_on:
+      - database
+
+  database:
+    image: mariadb
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=nextcloud
+      - MYSQL_DATABASE=nextcloud
+    volumes:
+      - database:/var/lib/mysql
+
+volumes:
+  nextcloud:
+  database:
