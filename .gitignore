@@ -1,0 +1,38 @@
+# --- secrets ----------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- python virtual environments --------------------------------------------
+# This repository previously committed an entire virtualenv (6,807 files).
+# These patterns exist so that cannot happen again.
+env/
+venv/
+.venv/
+ENV/
+
+# --- python build and cache artefacts ---------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# --- test and tool caches ---------------------------------------------------
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- local databases --------------------------------------------------------
+*.sqlite3
+*.db
+
+# --- editors and OS ---------------------------------------------------------
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

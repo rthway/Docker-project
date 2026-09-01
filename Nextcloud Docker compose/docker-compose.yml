@@ -1,27 +1,46 @@
+# Nextcloud + MariaDB. Credentials come from ../.env -- see ../.env.example.
+#
+# Passwords were previously hardcoded here. They were only ever local defaults,
+# but a compose file with a literal password is a habit worth not having.
+
 services:
   nextcloud:
-    image: nextcloud
+    image: nextcloud:30-apache
+    restart: unless-stopped
     ports:
-      - 8080:80
+      - "${NEXTCLOUD_PORT:-8080}:80"
     volumes:
       - nextcloud:/var/www/html
     environment:
-      - MYSQL_HOST=database
-      - MYSQL_USER=nextcloud
-      - MYSQL_PASSWORD=nextcloud
-      - MYSQL_DATABASE=nextcloud
+      MYSQL_HOST: database
+      MYSQL_USER: ${NEXTCLOUD_DB_USER:?set NEXTCLOUD_DB_USER in .env}
+      MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD:?set NEXTCLOUD_DB_PASSWORD in .env}
+      MYSQL_DATABASE: ${NEXTCLOUD_DB_NAME:-nextcloud}
     depends_on:
-      - database
+      database:
+        condition: service_healthy
 
   database:
-    image: mariadb
+    image: mariadb:11.4
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
     environment:
-      - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_USER=nextcloud
-      - MYSQL_PASSWORD=nextcloud
-      - MYSQL_DATABASE=nextcloud
+      MARIADB_ROOT_PASSWORD: ${NEXTCLOUD_DB_ROOT_PASSWORD:?set NEXTCLOUD_DB_ROOT_PASSWORD in .env}
+      MARIADB_USER: ${NEXTCLOUD_DB_USER:?set NEXTCLOUD_DB_USER in .env}
+      MARIADB_PASSWORD: ${NEXTCLOUD_DB_PASSWORD:?set NEXTCLOUD_DB_PASSWORD in .env}
+      MARIADB_DATABASE: ${NEXTCLOUD_DB_NAME:-nextcloud}
     volumes:
       - database:/var/lib/mysql
+    healthcheck:
+      # depends_on alone only waits for the container to start, not for the
+      # database to accept connections.
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Not published to the host: only Nextcloud needs to reach it.
+    expose:
+      - "3306"
 
 volumes:
   nextcloud:

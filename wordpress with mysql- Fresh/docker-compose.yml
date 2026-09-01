@@ -1,25 +1,44 @@
-version: '3'
+# WordPress + MySQL. Credentials come from ../.env -- see ../.env.example.
+#
+# The `version:` key is gone: obsolete since Compose v2, and it emits a warning.
 
 services:
   mysql:
-    image: 'mysql:5.7'
-    restart: always
+    image: mysql:8.4
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: wordpress
-      MYSQL_DATABASE: wordpress
-      MYSQL_USER: wordpress
-      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: ${WORDPRESS_DB_ROOT_PASSWORD:?set WORDPRESS_DB_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME:-wordpress}
+      MYSQL_USER: ${WORDPRESS_DB_USER:?set WORDPRESS_DB_USER in .env}
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD:?set WORDPRESS_DB_PASSWORD in .env}
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    expose:
+      - "3306"
 
   wordpress:
-    image: wordpress
+    image: wordpress:6-php8.3-apache
+    restart: unless-stopped
     depends_on:
-      - mysql
-    links:
-      - 'mysql:mysql'
-    ports: 
-      - '8080:80'
-    restart: always
+      mysql:
+        # service_healthy, not the old `links:` -- WordPress fails its install
+        # step if MySQL is not yet accepting connections.
+        condition: service_healthy
+    ports:
+      - "${WORDPRESS_PORT:-8080}:80"
     environment:
-      WORDPRESS_DB_NAME: wordpress
-      WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:?set WORDPRESS_DB_USER in .env}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:?set WORDPRESS_DB_PASSWORD in .env}
+    volumes:
+      - wordpress:/var/www/html
+
+volumes:
+  db:
+  wordpress:

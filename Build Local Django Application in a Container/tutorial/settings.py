@@ -10,7 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,13 +22,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-r&&vf=3b90x@rjzn&wk9qsqkw28+7xy8x#ab6z1i-a2^jm6$)k'
+# Read from the environment. The key that used to live here was Django's own
+# `django-insecure-` development key, so nothing real was exposed -- but a
+# literal SECRET_KEY in a committed file is the habit that leaks the real one.
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY is not set. Copy .env.example to .env, then "
+        "generate a key with: python -c \"from django.core.management.utils "
+        "import get_random_secret_key as k; print(k())\""
+    )
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Defaults to False. An unset variable in a real deployment should look
+# obviously unconfigured, not silently run with DEBUG on.
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in {"1", "true", "yes"}
 
-ALLOWED_HOSTS = ['0.0.0.0']
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    if h.strip()
+]
 
 
 # Application definition
